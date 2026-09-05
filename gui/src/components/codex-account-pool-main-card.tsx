@@ -35,6 +35,7 @@ export function CodexAccountPoolMainCard({
   onOpenReset,
   onCopyDoctor,
   doctorCopyOutcomeFor,
+  onManageMainHardLock,
 }: {
   t: TFn;
   main: CodexAccountEntry | undefined;
@@ -59,6 +60,7 @@ export function CodexAccountPoolMainCard({
   onOpenReset: (account: CodexAccountEntry) => void;
   onCopyDoctor?: (accountId: string) => void;
   doctorCopyOutcomeFor?: (accountId: string) => "copied" | "unavailable" | null;
+  onManageMainHardLock?: () => void;
 }) {
   const mainFallbackLabel = t("codexAuth.codexApp");
   const mainId = main?.id ?? "__main__";
@@ -74,15 +76,17 @@ export function CodexAccountPoolMainCard({
   };
   const showReauth = Boolean(main?.needsReauth) || oauthHealthShowsReauth(main?.health?.status);
   const inCooldown = oauthHealthIsCooldown(main?.health?.status);
+  const policy = main?.mainAccountHardLock;
+  const hardLocked = policy?.enabled === true && policy.state === "blocked";
   const healthLabel = formatOAuthHealthLabel(t, main?.health);
   const healthSummary = main
     ? formatOAuthHealthSummary(t, "codex", mainId, main.health)
     : null;
 
   return (
-    <div className={`card ${isMainActive ? "card-active" : ""}`} style={{ marginBottom: 12 }}>
+    <div className={`card ${isMainActive && !hardLocked ? "card-active" : ""}`} style={{ marginBottom: 12 }}>
       <div className="card-head">
-        <span className={`dot ${showReauth ? "dot-amber" : "dot-green"}`} />
+        <span className={`dot ${showReauth || hardLocked ? "dot-amber" : "dot-green"}`} />
         <strong>{t("codexAuth.mainAccount")}</strong>
         <span className="card-badges">
           {main?.plan && <span className="badge badge-green">{main.plan}</span>}
@@ -98,7 +102,7 @@ export function CodexAccountPoolMainCard({
             <span className={oauthHealthBadgeClass(main?.health?.status)}>{healthLabel}</span>
           )}
           {showReauth && !healthLabel && <span className="badge badge-amber">{t("codexAuth.needsReauth")}</span>}
-          {!main?.paused && (
+          {!main?.paused && !hardLocked && (
             <span className={`badge ${isMainActive ? "badge-primary" : "badge-muted"}`}>
               {isMainActive
                 ? t(accountModeState === "direct" ? "codexAuth.poolPrepared" : "codexAuth.nextSession")
@@ -106,7 +110,7 @@ export function CodexAccountPoolMainCard({
             </span>
           )}
         </span>
-        {!main?.paused && (!isMainActive || pinnedId !== "__main__") && !showReauth && !inCooldown && (
+        {!main?.paused && !hardLocked && (!isMainActive || pinnedId !== "__main__") && !showReauth && !inCooldown && (
           <button type="button" className="btn btn-ghost btn-sm codex-account-switch" onClick={() => onSwitch(mainSwitchEntry)}>
             {switchActionLabel}
           </button>
@@ -155,6 +159,15 @@ export function CodexAccountPoolMainCard({
           />
         )}
       </div>
+      {policy?.enabled && (
+        <div className={`codex-main-hard-lock-status${hardLocked ? " is-blocked" : ""}`}>
+          <p role="status">{t(hardLocked ? "codexAuth.mainHardLockBlocked"
+            : policy.state === "ready" ? "codexAuth.mainHardLockMonitoring" : "codexAuth.mainHardLockUnknown")}</p>
+          {onManageMainHardLock
+            ? <button type="button" className="link-btn" onClick={onManageMainHardLock}>{t("codexAuth.mainHardLockManage")}</button>
+            : <a className="link-btn" href="#codex-set">{t("codexAuth.mainHardLockManage")}</a>}
+        </div>
+      )}
       {healthSummary && (
         <div className="card-sub faint">{healthSummary}</div>
       )}

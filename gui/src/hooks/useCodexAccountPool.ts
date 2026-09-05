@@ -24,6 +24,13 @@ import {
  * Modals, toasts, prompts and popovers stay in the presentation layer.
  */
 
+export interface MainAccountHardLockStatus {
+  enabled: boolean;
+  state: "off" | "unknown" | "ready" | "blocked";
+  /** Server timestamp in milliseconds; not a client-side unlock instruction. */
+  resetAt?: number;
+}
+
 export interface CodexAccountEntry {
   id: string;
   email: string;
@@ -39,6 +46,7 @@ export interface CodexAccountEntry {
   priority: number;
   hasCredential: boolean;
   quota: AccountQuota | null;
+  mainAccountHardLock?: MainAccountHardLockStatus;
   needsReauth?: boolean;
   health?: { status: "healthy" | "cooldown" | "reauth_required" | "warning"; reason?: string; until?: string };
   healthLabel?: string;
